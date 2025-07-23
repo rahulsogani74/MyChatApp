@@ -1,32 +1,43 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import "./auth.css";
 
-const Login = ({ setUser }) => {
-  const [username, setUsername] = useState('');
+const Login = ({ onLogin }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username) return;
+    const res = await fetch("http://localhost:5000/api/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: email, password }),
+    });
 
-    try {
-      const res = await axios.post('http://localhost:5000/api/login', { username });
-      setUser(res.data.user); // set in App
-      localStorage.setItem('chat-user', JSON.stringify(res.data.user));
-    } catch (err) {
-      alert('Login failed');
-      console.error(err);
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem("token", data.token);
+      onLogin(data.user);
+    } else {
+      alert(data.message);
     }
   };
 
   return (
-    <div className="login-container">
-      <form onSubmit={handleLogin}>
-        <h2>Login to Chat</h2>
+    <div className="auth-container">
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Enter Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username or Email"
+          required
+          onChange={(e) => setEmail(e.target.value)} // actually username
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          onChange={(e) => setPassword(e.target.value)}
         />
         <button type="submit">Login</button>
       </form>

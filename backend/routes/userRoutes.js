@@ -1,11 +1,35 @@
-import express from "express";
-import { registerUser, loginUser, getProfile } from "../controllers/userController.js";
-import { protect } from "../middleware/authMiddleware.js";
+const express = require("express");
+const bcrypt = require("bcrypt");
 
 const router = express.Router();
+const User = require("../models/User");
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.get("/me", protect, getProfile);
+router.post("/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-export default router;
+    const hashed = await bcrypt.hash(password, 10);
+    const newUser = new User({ username: name, email, password: hashed });
+    await newUser.save();
+
+    res.json({ message: "User registered" });
+  } catch (error) {
+    console.error("Register Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username, password });
+  if (user) {
+    res.send({ message: "Login successful", username: user.username });
+  } else {
+    res.status(401).send({ error: "Invalid credentials" });
+  }
+});
+
+module.exports = router;

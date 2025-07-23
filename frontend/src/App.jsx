@@ -1,19 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import Login from './pages/Login';
+import React, { useState } from "react";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
-function App() {
+const App = () => {
   const [user, setUser] = useState(null);
+  const [showRegister, setShowRegister] = useState(false);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('chat-user');
-    if (savedUser) setUser(JSON.parse(savedUser));
-  }, []);
+  if (!user) {
+    return showRegister ? (
+      <>
+        <Register />
+        <p style={{ textAlign: "center" }}>
+          Already have an account?{" "}
+          <button onClick={() => setShowRegister(false)}>Login</button>
+        </p>
+      </>
+    ) : (
+      <>
+        <Login onLogin={setUser} />
+        <p style={{ textAlign: "center" }}>
+          Don't have an account?{" "}
+          <button onClick={() => setShowRegister(true)}>Register</button>
+        </p>
+      </>
+    );
+  }
 
   return (
     <div>
-      {user ? <Chat user={user} /> : <Login setUser={setUser} />}
+      <h2>Welcome, {user.name}</h2>
+      <p>Chat UI coming next...</p>
     </div>
   );
-}
+};
 
 export default App;

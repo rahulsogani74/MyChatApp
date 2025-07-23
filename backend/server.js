@@ -1,48 +1,51 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const http = require('http');
-const socketIo = require('socket.io');
-const authRoutes = require('./routes/auth');
-require('dotenv').config();
+const express = require("express");
+require("dotenv").config();
+
+const http = require("http");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const socketIo = require("socket.io");
+const userRoutes = require("./routes/userRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-  },
+    origin: "http://localhost:5173", // Frontend URL
+    methods: ["GET", "POST"]
+  }
 });
 
-// 🧠 Middleware
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("MongoDB error:", err));
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// 🔗 Routes
-app.use('/api/auth', authRoutes);
+// Routes
+app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
 
-// 🧠 MongoDB
-mongoose.connect('mongodb://localhost:27017/chatapp', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err));
+// WebSocket Events
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
 
-// 💬 Socket.io logic
-io.on('connection', socket => {
-  console.log('🟢 New client connected');
-
-  socket.on('send-message', ({ sender, receiver, message }) => {
-    io.emit('receive-message', { sender, receiver, message });
+  socket.on("sendMessage", (data) => {
+    socket.broadcast.emit("receiveMessage", data);
   });
 
-  socket.on('disconnect', () => {
-    console.log('🔴 Client disconnected');
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
   });
 });
 
-// 🟢 Start server
+// Start server
 server.listen(5000, () => {
-  console.log('🚀 Server running on http://localhost:5000');
+  console.log("Server running on http://localhost:5000");
 });
