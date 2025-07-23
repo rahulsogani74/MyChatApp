@@ -1,21 +1,21 @@
-// frontend/components/Sidebar.jsx
-import React from 'react'
+import React from 'react';
 
-const users = ['Rahul', 'Priya', 'Aman', 'Simran']
+const Sidebar = () => {
+  const users = ['Rahul', 'Priya', 'Aman', 'Meena', 'Karan'];
 
-const Sidebar = ({ onSelectUser }) => {
   return (
-    <div className="sidebar">
-      <h2>Chats</h2>
+    <aside className="sidebar">
+      <h2>Active Chats</h2>
       <ul>
-        {users.map(user => (
-          <li key={user} style={{ cursor: 'pointer', marginBottom: '10px' }} onClick={() => onSelectUser(user)}>
-            {user}
+        {users.map((user, i) => (
+          <li key={i} className="user">
+            <span className="avatar">{user[0]}</span>
+            <span>{user}</span>
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
+    </aside>
+  );
+};
 
-export default Sidebar
+export default Sidebar;

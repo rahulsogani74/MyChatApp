@@ -1,32 +1,61 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import cors from 'cors';
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const { Server } = require('socket.io');
+const http = require('http');
+require('dotenv').config();
 
-import userRoutes from './routes/user.routes.js';
-import messageRoutes from './routes/message.routes.js';
-import { connectToDatabase } from './utils/database.js';
-import { configureApp } from './utils/configureApp.js';
-
-// Load environment variables
-dotenv.config();
 const app = express();
-
-// Configure app with middleware
-configureApp(app);
-
-// Connect to MongoDB
-connectToDatabase();
-
-// Setup routes
-app.use('/api/users', userRoutes);
-app.use('/api/messages', messageRoutes);
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: 'http://localhost:3000' }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.use(cors());
+app.use(express.json());
+
+mongoose.connect('mongodb://127.0.0.1:27017/mychatapp', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log('MongoDB connected'));
+
+const UserSchema = new mongoose.Schema({ username: String });
+const MessageSchema = new mongoose.Schema({
+  sender: String,
+  receiver: String,
+  message: String,
+  timestamp: { type: Date, default: Date.now },
+});
+
+const User = mongoose.model('User', UserSchema);
+const Message = mongoose.model('Message', MessageSchema);
+
+app.post('/api/login', async (req, res) => {
+  const { username } = req.body;
+  let user = await User.findOne({ username });
+  if (!user) user = await User.create({ username });
+  res.json({ user });
+});
+
+app.get('/api/messages', async (req, res) => {
+  const { from, to } = req.query;
+  const messages = await Message.find({
+    $or: [
+      { sender: from, receiver: to },
+      { sender: to, receiver: from }
+    ]
+  }).sort({ timestamp: 1 });
+  res.json({ messages });
+});
+
+io.on('connection', (socket) => {
+  console.log('User connected');
+
+  socket.on('send-message', async (data) => {
+    const { sender, receiver, message } = data;
+    const saved = await Message.create({ sender, receiver, message });
+    io.emit('receive-message', saved);
+  });
+});
+
+server.listen(5000, () => console.log('Server running on port 5000'));
