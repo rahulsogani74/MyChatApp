@@ -6,22 +6,24 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const socketIo = require("socket.io");
 const userRoutes = require("./routes/userRoutes");
-const messageRoutes = require("./routes/messageRoutes");
+const messageRoutes = require("./routes/message");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: "http://localhost:5173", // Frontend URL
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log("MongoDB connected"))
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("MongoDB error:", err));
 
 // Middlewares
@@ -36,8 +38,17 @@ app.use("/api/messages", messageRoutes);
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("sendMessage", (data) => {
+  socket.on("sendMessage", async (data) => {
+    // Emit to all clients
     socket.broadcast.emit("receiveMessage", data);
+
+    // Save to DB
+    const message = new Message({
+      sender: data.sender,
+      receiver: data.receiver || "public",
+      content: data.content,
+    });
+    await message.save();
   });
 
   socket.on("disconnect", () => {
