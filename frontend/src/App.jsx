@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Chat from "./components/Chat";
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -27,9 +28,8 @@ const App = () => {
   }
 
   return (
-    <div>
-      <h2>Welcome, {user.name}</h2>
-      <p>Chat UI coming next...</p>
+    <div className="App">
+      {user ? <Chat user={user} /> : <Login onLogin={setUser} />}
     </div>
   );
 };
